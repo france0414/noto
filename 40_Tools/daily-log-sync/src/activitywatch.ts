@@ -1,9 +1,15 @@
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 const AW_BASE = "http://localhost:5600/api/0";
-const VAULT_ROOT = "/Users/apple/Desktop/obsidian/AI-france";
 const COMPUTER_NAME = process.env.COMPUTER_NAME ?? "mac";
+const VAULT_ROOT = process.env.VAULT_ROOT ?? path.resolve(__dirname, "../../..");
 const DAILY_LOG_DIR = path.join(VAULT_ROOT, "30_Logs/daily", COMPUTER_NAME);
 
 
