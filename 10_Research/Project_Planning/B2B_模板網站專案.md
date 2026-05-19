@@ -769,24 +769,308 @@ Strapi 原生支援 i18n locale，多語系也能無縫接上。
 
 ---
 
-## Next Action
+## 前台編輯模式（Visual Editor）
 
-1. **選定主力 AI 工具**（VS Code Copilot / Cursor / Claude Code / Codex）→ 決定 Skill 放哪
-2. **建立乾淨 repo**：`b2b-template`，從 my-project 搬元件（去除 AI 設定雜檔）
-3. 建立 Block 元件資料夾結構 `src/components/blocks/` + `BlockRenderer.tsx`
-4. 建立 `data/` 資料夾 + JSON Schema（產品、新聞、公司資訊）
-5. 建立產業預設模板（`data/templates/manufacturing.json` 等）
-6. 做 Block Generator（SKILL.md + 模板檔），確保新元件結構一致
-7. 做 JSON Generator（SKILL.md + 模板檔），確保 AI 生成資料格式正確
-8. 安裝 AI Skill（web-design-guidelines + frontend-design），整合成一份
-9. 接上 `getStaticProps` 讀 JSON → `BlockRenderer` 渲染
-10. 加入 i18n（`next-intl`）+ 資料夾分語系
-11. 加入 SEO Layout（metadata API + Schema.org JSON-LD）
-12. 加入 Framer Motion 基礎動畫（FadeInView 滾動進場）
-13. 做 Google Sheet 客戶收集表模板
-14. 建立第一個範例客戶 Demo Site（製造業模板）
-15. （選配）加入 Three.js 3D 產品展示
-16. （量產階段）串接 Pipeline：Google Sheet → JSON → 翻譯 → SEO → Build → Deploy
+> Block 元件本身就內建編輯能力，不依賴後台。前台編輯 = 改 JSON State → 匯出 JSON。
+
+### 核心概念
+
+```
+現在：  JSON 檔 → props → Block 渲染（唯讀）
+編輯模式：JSON State ←→ props ←→ Block 渲染 + 編輯 UI（雙向）
+儲存：  JSON State → 匯出 JSON 檔（下載 / 複製 / POST API）
+```
+
+### 三層控制
+
+| 層級 | 操作 | 對應 JSON |
+|---|---|---|
+| **頁面級** | Block 排序、新增、刪除 | `homepage.json` blocks 陣列 |
+| **區塊級** | 切換 variant、調整設定（欄數、背景色、左右切換） | `block.config` 物件 |
+| **內容級** | 文字 inline 編輯、圖片替換、項目排序、插入新項目 | `block.items` 陣列 |
+
+### Block JSON 結構（擴充 config + items）
+
+```json
+{
+  "block": "ProductHighlight",
+  "variant": "grid-3",
+  "config": {
+    "columns": 3,
+    "layout": "horizontal",
+    "showPrice": true
+  },
+  "items": [
+    { "type": "product", "id": "p001" },
+    { "type": "product", "id": "p002" },
+    { "type": "text", "content": "自訂文字區塊" },
+    { "type": "image", "src": "media/custom.jpg", "alt": "說明" }
+  ]
+}
+```
+
+### Block Props 合約擴充
+
+```ts
+// 原有 BlockProps 加上編輯相關 props
+interface BlockProps {
+  variant?: string;
+  data: Record<string, any>;
+  className?: string;
+  // ↓ 編輯模式擴充（Phase 2+ 才實作，現在先預留介面）
+  isEditMode?: boolean;
+  onUpdate?: (newBlockData: BlockData) => void;
+}
+```
+
+**Phase 1 預留策略：props 介面先定義 `isEditMode` + `onUpdate`，但不實作邏輯。** Block 元件內部只要加一個 `if (!isEditMode) return 純展示;` 的判斷點即可，零成本預留。
+
+### 技術選擇
+
+| 功能 | 庫 | 階段 |
+|---|---|---|
+| Block 拖曳排序 | `@dnd-kit/core` + `@dnd-kit/sortable` | Phase 2+ |
+| 文字 inline 編輯 | `contentEditable` 或 `@tiptap/react` | Phase 2+ |
+| 圖片替換 | `<input type="file">` + FileReader | Phase 2+ |
+| 設定面板 | shadcn/ui `Sheet` + `Select` + `Switch` | Phase 2+ |
+| 儲存 | JSON 匯出下載 → 未來接 API | Phase 2+ |
+
+### 後台同步演進（未來）
+
+```
+Phase 1：零後台，JSON 檔驅動
+Phase 2：前台編輯 → 匯出 JSON（仍無後台）
+Phase 3+：接 Strapi Dynamic Zone 或自建 Schema Registry
+  → 前台編輯存回 CMS API
+  → 後台自動產生對應表單
+  → 新增 Block = 新增 Strapi Component，前後台同時可用
+```
+
+**現在不做後台同步，但 JSON 結構（block + variant + config + items）本身就是為了讓後台能無痛接入。**
+
+---
+
+## 三階段開發計畫
+
+### Phase 1：完整 B2B 網站能力（2-3 天內）
+
+> 目標：AI 系統能產出一個完整的 B2B 網站（展示型，純靜態）
+
+**Day 1 — 基礎建設**
+
+| # | 任務 | 產出 |
+|---|---|---|
+| 1 | 選定主力 AI 工具（VS Code Copilot） | `.github/copilot-instructions.md` |
+| 2 | 建立乾淨 repo `b2b-template` | Next.js + shadcn/ui + Tailwind 專案 |
+| 3 | 從 my-project 搬元件（Common / Product / News / Category） | `src/components/` |
+| 4 | 建立 Block 資料夾 + `BlockRenderer.tsx` | `src/components/blocks/` |
+| 5 | 建立 `data/` + JSON Schema（products / news / company） | `data/zh/*.json` |
+| 6 | 建立產業預設模板 | `data/templates/manufacturing.json` 等 |
+
+**Day 2 — 頁面串接 + i18n + SEO**
+
+| # | 任務 | 產出 |
+|---|---|---|
+| 7 | 接上 `getStaticProps` 讀 JSON → BlockRenderer 渲染 | 首頁 + 產品列表 + 產品明細 |
+| 8 | 加入 i18n（`next-intl`）+ 資料夾分語系 | `data/en/*.json` + locale 路由 |
+| 9 | 加入 SEO Layout（metadata API + Schema.org JSON-LD） | `<Head>` + `llms.txt` |
+| 10 | 加入 Framer Motion 基礎動畫 | `FadeInView` 滾動進場 |
+
+**Day 3 — Generator + Demo + 詢價車**
+
+| # | 任務 | 產出 |
+|---|---|---|
+| 11 | 做 Block Generator（SKILL.md + 模板） | `.skills/block-generator/` |
+| 12 | 做 JSON Generator（SKILL.md + 模板） | `.skills/json-generator/` |
+| 13 | 基礎詢價車（加入詢價 + 詢價清單 + 送出表單） | `src/components/inquiry/` |
+| 14 | AI 生成 Demo 資料（製造業範例） | `data/zh/*.json` 填滿 |
+| 15 | 建立第一個完整 Demo Site | 可部署的靜態 B2B 網站 |
+
+**詢價車 v1（Phase 1 基礎版）：**
+```
+功能：
+- ProductCard 加「加入詢價」按鈕
+- 詢價車側邊欄（shadcn Sheet）顯示已加入的產品
+- 可調整數量、移除項目
+- 送出詢價表單（公司名、聯絡人、Email、需求說明）→ Formspree
+- localStorage 暫存（訪客不用登入）
+
+技術：
+- React Context 管理 cart state（簡單場景不需要 Zustand）
+- shadcn Sheet + Badge + Button
+- Formspree 零後端送信
+
+元件：
+  src/components/inquiry/
+    InquiryCartProvider.tsx    ← Context Provider（包在 RootLayout）
+    AddToInquiryButton.tsx     ← 加入詢價按鈕（放在 ProductCard）
+    InquiryCartSheet.tsx       ← 詢價車側邊欄
+    InquiryCartButton.tsx      ← Header 浮動按鈕（Badge 顯示數量）
+    InquirySubmitForm.tsx      ← 送出表單
+```
+
+**Phase 1 預留（零成本）：**
+- `BlockProps` 介面加 `isEditMode?: boolean` + `onUpdate?: callback`
+- Block JSON 結構支援 `config` + `items`（但 Phase 1 只用 `block` + `variant`）
+- 不裝 `@dnd-kit`、不寫編輯 UI
+
+### Phase 2：篩選功能 + 詢價車進階 + 前台編輯
+
+> 目標：產品互動篩選 + 詢價車增強 + 初步編輯能力
+
+**詢價車 v2（進階功能）**
+
+```
+Phase 1 基礎版之上新增：
+- 詢價項目加備註欄位（每筆產品可寫需求）
+- 詢價紀錄 localStorage 歷史（上次送過什麼）
+- 送出後自動產生 PDF 詢價單（選配）
+- 接 API 存檔（如果有後台）
+- Zustand 取代 Context（如果 state 變複雜）
+```
+
+**篩選功能（Product Filter）**
+
+```
+概念：產品列表頁的多條件篩選
+
+篩選維度（從 JSON 自動產生）：
+- 分類（category）
+- 規格（specs 裡的 key-value）
+- 關鍵字搜尋（name + description）
+- 排序（名稱、日期、分類）
+
+技術：
+- URL query params 驅動（`/products?category=cnc&sort=name`）
+- React state 篩選 + useMemo
+- shadcn/ui Checkbox + Select + Input
+- 手機版：篩選收進 Sheet 側邊欄
+```
+
+```tsx
+// 元件結構
+src/components/
+  filter/
+    ProductFilter.tsx          ← 篩選面板（桌面側邊欄 / 手機 Sheet）
+    FilterCheckboxGroup.tsx    ← 勾選篩選（分類、規格）
+    FilterSearchInput.tsx      ← 關鍵字搜尋
+    FilterSortSelect.tsx       ← 排序下拉
+    useProductFilter.ts        ← 篩選邏輯 hook
+```
+
+**JSON 預留欄位（Phase 1 就定義）：**
+```json
+{
+  "id": "p001",
+  "name": "CNC 車床 VL-25",
+  "category": "cnc-lathe",
+  "specs": {
+    "主軸轉速": "6000 rpm",
+    "加工直徑": "250mm",
+    "精度": "±0.005mm"
+  },
+  "inquirable": true,
+  "minOrderQuantity": 1
+}
+```
+
+### Phase 3：產品變體系統
+
+> 目標：一個產品有多種規格/型號/選項
+
+```
+概念：
+  CNC 車床 VL 系列
+    ├── VL-25（加工直徑 250mm）
+    ├── VL-32（加工直徑 320mm）
+    └── VL-40（加工直徑 400mm）
+  
+  每個變體有不同的：規格、價格、圖片、庫存狀態
+```
+
+**JSON 結構設計：**
+```json
+{
+  "id": "p001",
+  "name": "CNC 車床 VL 系列",
+  "category": "cnc-lathe",
+  "variants": [
+    {
+      "sku": "VL-25",
+      "name": "VL-25",
+      "specs": { "加工直徑": "250mm", "主軸轉速": "6000 rpm" },
+      "images": { "hero": "media/p001_vl25.jpg" },
+      "status": "available"
+    },
+    {
+      "sku": "VL-32",
+      "name": "VL-32",
+      "specs": { "加工直徑": "320mm", "主軸轉速": "4500 rpm" },
+      "images": { "hero": "media/p001_vl32.jpg" },
+      "status": "available"
+    }
+  ],
+  "variantAxis": ["加工直徑"],
+  "commonSpecs": {
+    "品牌": "XX 精機",
+    "產地": "台灣"
+  }
+}
+```
+
+**元件設計：**
+```tsx
+src/components/
+  product/
+    ProductVariantSelector.tsx  ← 變體選擇器（按鈕組 / 下拉）
+    ProductSpecTable.tsx        ← 規格比較表
+    VariantImageGallery.tsx     ← 依選擇的變體切換圖片
+```
+
+**Phase 1 預留（零成本）：**
+- products.json 欄位預留 `variants?: []` + `variantAxis?: []`
+- Phase 1 不寫 variant 資料，ProductCard 正常顯示
+- Phase 3 才實作 VariantSelector 元件
+
+---
+
+## Next Action（更新 2026-04-20）
+
+### Phase 1（2-3 天內）
+
+| # | 任務 | 優先級 | 狀態 |
+|---|---|---|---|
+| 1 | **選定主力 AI 工具** → VS Code Copilot，建立 `.github/copilot-instructions.md` | ⭐ | 🔴 待做 |
+| 2 | **建立乾淨 repo** `b2b-template`，搬元件 | ⭐ | 🔴 待做 |
+| 3 | 建立 Block 元件資料夾 + `BlockRenderer.tsx` | ⭐ | 🔴 待做 |
+| 4 | 建立 `data/` + JSON Schema（含 Phase 2/3 預留欄位） | ⭐ | 🔴 待做 |
+| 5 | 建立產業預設模板 | ⭐ | 🔴 待做 |
+| 6 | 接上 `getStaticProps` → BlockRenderer | ⭐ | 🔴 待做 |
+| 7 | i18n（`next-intl`）+ 資料夾分語系 | ⭐ | 🔴 待做 |
+| 8 | SEO Layout + Schema.org JSON-LD | ⭐ | 🔴 待做 |
+| 9 | Framer Motion 基礎動畫 | 中 | 🔴 待做 |
+| 10 | Block Generator + JSON Generator（SKILL.md） | ⭐ | 🔴 待做 |
+| 11 | 基礎詢價車 v1（加入詢價 + 側邊欄 + Formspree 送出） | ⭐ | 🔴 待做 |
+| 12 | AI 生成 Demo 資料 + 第一個 Demo Site | ⭐ | 🔴 待做 |
+
+### Phase 2（Phase 1 完成後）
+
+| # | 任務 | 優先級 |
+|---|---|---|
+| 13 | 產品篩選（Filter + URL query + useMemo） | ⭐ |
+| 14 | 詢價車 v2 進階（備註、歷史紀錄、PDF 匯出） | 中 |
+| 15 | 前台編輯模式 v1（Block 排序 + variant 切換 + 文字編輯） | 中 |
+| 16 | Google Sheet 客戶收集表模板 | 中 |
+
+### Phase 3（有客戶需求時）
+
+| # | 任務 | 優先級 |
+|---|---|---|
+| 17 | 產品變體系統（VariantSelector + SpecTable） | 依需求 |
+| 18 | 前台編輯模式 v2（區塊內容新增 + 圖片替換 + 匯出） | 依需求 |
+| 19 | 後台接入（Strapi Dynamic Zone） | 依需求 |
+| 20 | Three.js 3D 產品展示 | 選配 |
+| 21 | Pipeline 量產串接 | 量產時 |
 
 ---
 
@@ -809,6 +1093,10 @@ Strapi 原生支援 i18n locale，多語系也能無縫接上。
 | 2026-04-17 | Props 合約：TypeScript 介面必須遵守，UI 庫不強制 | 外部設計師可用 MUI 或純 CSS，只要 `variant` + `data` + `className` 介面對 |
 | 2026-04-17 | Generator 模式先行，Pipeline 量產時再串 | Block Generator + JSON Generator 優先，Pipeline 等第一個客戶後才做 |
 | 2026-04-17 | AI Skill 選擇：web-design-guidelines + frontend-design | stitch-design 不需要，design-md 之後再加 |
+| 2026-04-20 | 三階段開發計畫：Phase 1 完整展示站 → Phase 2 詢價車+篩選 → Phase 3 產品變體 | 2-3 天內先有完整 B2B 網站能力，再疊互動功能 |
+| 2026-04-20 | 前台編輯模式納入規劃，Phase 1 預留介面 | BlockProps 加 `isEditMode` + `onUpdate`，Block JSON 支援 `config` + `items`，零成本預留 |
+| 2026-04-20 | 後台同步不做，JSON 結構本身就是後台接口 | block + variant + config + items 結構可直接對接 Strapi Dynamic Zone |
+| 2026-04-20 | JSON Schema 預留 Phase 2/3 欄位 | `specs`、`inquirable`、`variants`、`variantAxis` 先定義不填值 |
 
 ---
 

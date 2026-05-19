@@ -1,0 +1,22 @@
+{
+  "name": "daily-log-sync",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync:dry-run": "tsx src/syncTodayLogToSheet.ts --dry-run",
+    "sync": "tsx src/syncTodayLogToSheet.ts",
+    "aw": "tsx src/activitywatch.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --import tsx test/**/*.test.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

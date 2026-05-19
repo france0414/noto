@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "10_Research/Web_Development/AI_全端自動化網站復刻架構.md",
+                "file": "00_Capture/Inbox.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "AI_全端自動化網站復刻架構"
+              "title": "Inbox"
             }
           }
         ]
@@ -94,9 +94,9 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "10_Research/Web_Development/AI_全端自動化網站復刻架構.md",
+                "file": "00_Capture/Inbox.md",
                 "collapseAll": false,
-                "extraContext": false,
+                "extraContext": true,
                 "sortOrder": "alphabetical",
                 "showSearch": false,
                 "searchQuery": "",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "AI_全端自動化網站復刻架構 的反向連結"
+              "title": "Inbox 的反向連結"
             }
           },
           {
@@ -184,8 +184,16 @@
   },
   "active": "9db0ca29dc04f28a",
   "lastOpenFiles": [
-    "未命名.md",
+    "30_Logs/b2b-template/W2B Temporary/2026-04-22-log.md",
+    "30_Logs/b2b-template/W2B Temporary/README.md",
+    "30_Logs/b2b-template/W2B Temporary",
+    "30_Logs/b2b-template/daily-log/00_from_project_inbox.md",
+    "30_Logs/b2b-template/daily-log",
+    "10_Research/Project_Planning/GTMC_B2B_Headless_架構規劃.md",
+    "30_Logs/gtmc-rebuild/superpowers/specs/2026-04-17-nextjs-app-router-scaffold-design.md",
+    "未命名.canvas",
     "10_Research/Web_Development/AI_全端自動化網站復刻架構.md",
+    "未命名.md",
     "00_Capture/Inbox.md",
     "10_Research/Web_Development/README.md",
     "10_Research/Web_Development/Nextjs_vs_PHP_SEO.md",
